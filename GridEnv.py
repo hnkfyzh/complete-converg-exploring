@@ -249,7 +249,7 @@ class GridEnv(gym.Env):
 
         # self.show_observation_image = self.show_observation_image[int(self.show_observation_image.shape[0] / 5):, :]
         # kernel = np.ones((1, 2), np.uint8)
-        kernel_2 = np.ones((19, 19), np.uint8)
+        kernel_2 = np.ones((15, 15), np.uint8)
         # scaled_map = cv2.dilate(map_img, kernel, 1)
         print("please waiting")
         #在腐蚀之前一定要转为二值图像
@@ -1174,7 +1174,7 @@ def on_space():
 
 def use_cost_method_to_explore(agent_num, map_name):
     env = GridEnv(1,  agent_num, 1000, map_name,
-                  scale_factor=0.1, sensor_range = 5, robot_size=0.4,
+                  scale_factor=0.1, sensor_range = 4, robot_size=0.4,
                   #不太清楚 如果原地图1个像素点代表1cm的话，这个单位就是m
                   agent_0_pos = [240, 360],
                   agent_1_pos = [200, 1820],
