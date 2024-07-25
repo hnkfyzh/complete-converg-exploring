@@ -307,7 +307,7 @@ class GridEnv(gym.Env):
                             1.0, (0, 0, 255), thickness=1)  # 如果不想在图片上显示坐标可以注释该行
 
                 cv2.imshow("image", scaled_map_uint8)
-                print("[{},{}]".format(a[-1], b[-1]))  # 终端中输出坐标
+                print("[{},{}]".format(int(b[-1] * self.width  / 1331), int(a[-1] * self.height / 1886)))  # 终端中输出坐标
                 # self.agent_pos.append([int(b[-1]*self.width*self.scale_factor/1331), int(a[-1]*self.height*self.scale_factor/1886)])
                 self.agent_pos.append([int(b[-1] * self.width  / 1331),
                                        int(a[-1] * self.height / 1886)])
@@ -754,6 +754,32 @@ class GridEnv(gym.Env):
 
         return dismap_
 
+    def construct_distance_map(self, grid, start,robot_num):
+        rows, cols = len(grid), len(grid[0])
+        distance_map = [[-2] * cols for _ in range(rows)]  # 初始化距离地图为-2
+        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # 四个方向
+
+        queue = deque([start])
+        distance_map[start[0]][start[1]] = 0
+
+        while queue:
+            x, y = queue.popleft()
+            current_distance = distance_map[x][y]
+
+            for dx, dy in directions:
+                nx, ny = x + dx, y + dy
+
+                if 0 <= nx < rows and 0 <= ny < cols:
+                    if grid[nx][ny] == 254 and (
+                            distance_map[nx][ny] == -2 or distance_map[nx][ny] > current_distance + 1):
+                        distance_map[nx][ny] = current_distance + 1
+                        queue.append((nx, ny))
+                    elif (grid[nx][ny] == 1 or grid[nx][ny] == 2 or grid[nx][ny] == 3 and grid[nx][ny] != robot_num) and (
+                            distance_map[nx][ny] == -2 or distance_map[nx][ny] > current_distance + 31):
+                        distance_map[nx][ny] = current_distance + 21
+                        queue.append((nx, ny))
+        distance_map = np.array(distance_map).reshape(rows,cols)
+        return distance_map
     def plot_map_with_path(self):
         vis = copy.deepcopy(self.complete_map)
         for e in range(self.num_agents):
@@ -877,7 +903,8 @@ class GridEnv(gym.Env):
 
 
                 # curr_dismap = self.dismapConstruction_start_target(self.agent_pos[e], self.built_map[e])
-                curr_dismap = self.dismapConstruction_start_target(self.agent_pos[e], self.gt_map)#构建的距离地图
+                # curr_dismap = self.dismapConstruction_start_target(self.agent_pos[e], self.gt_map)#构建的距离地图
+                curr_dismap = self.construct_distance_map(self.gt_map,(self.agent_pos[e][0],self.agent_pos[e][1]),e)
                 Dis2Frs = []
                 free_cluster_center = []
                 for i in range(len(cluster_center)):
@@ -1057,14 +1084,19 @@ class GridEnv(gym.Env):
                 global_plan = global_plan_accumulate[i]
                 pose = self.naive_local_planner(global_plan)
                 # pose = pose[1:]
-                random_integer = random.randint(1, 8)
+                random_integer1 = random.randint(9, 15)
+                random_integer2 = random.randint(5, 9)
+                random_integer3 = random.randint(3, 6)
                 if i == 0: integer = 2
                 if i == 1: integer = 5
                 if i == 2: integer = 8
-                if len(pose)>=8:
-                    pose = pose[1:random_integer] #这一步主要是为了让它们的路径分开
-                else:
-                    pose = pose[1:]
+                if len(pose)>=14:
+                    pose = pose[1:random_integer1] #这一步主要是为了让它们的路径分开
+                elif len(pose)>=8:
+                    pose = pose[1:random_integer2] #这一步主要是为了让它们的路径分开
+                elif len(pose)>=5:
+                    pose = pose[1:random_integer3]
+                else: pose = pose[1:]
                 if pose == []:
                     self.explored_each_map[i] = np.maximum(self.explored_each_map[i], self.explored_each_map_t[i])
                     self.obstacle_each_map[i] = np.maximum(self.obstacle_each_map[i], self.obstacle_each_map_t[i])
@@ -1174,7 +1206,7 @@ def on_space():
 
 def use_cost_method_to_explore(agent_num, map_name):
     env = GridEnv(1,  agent_num, 1000, map_name,
-                  scale_factor=0.1, sensor_range = 4, robot_size=0.4,
+                  scale_factor=0.05, sensor_range = 4.5, robot_size=0.4,
                   #不太清楚 如果原地图1个像素点代表1cm的话，这个单位就是m
                   agent_0_pos = [240, 360],
                   agent_1_pos = [200, 1820],

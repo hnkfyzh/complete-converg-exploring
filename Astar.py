@@ -149,7 +149,7 @@ class AStar:
 
         # repeat_cost = self.calculate_repeat_cost(s_start,s_goal)
 
-        return math.hypot(s_goal[0] - s_start[0], s_goal[1] - s_start[1]) + 50*self.is_collision(s_start,s_goal)
+        return math.hypot(s_goal[0] - s_start[0], s_goal[1] - s_start[1]) + 30*self.is_collision(s_start,s_goal)
 
     # def is_collision(self, s_start, s_end):
     #     """
